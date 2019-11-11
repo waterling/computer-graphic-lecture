@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>The WebGL Graphics Pipeline</title>
+  <link rel="stylesheet" href="css/reveal.min.css">
+  <link rel="stylesheet" href="css/theme/blood.css" id="theme">
+  <link rel="stylesheet" href="plugin/highlight/styles/docco.css">
+  <style>
+    .reveal .slide-number {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .reveal section img {
+      max-height: 400px;
+    }
+    .reveal pre {
+      box-shadow: none;
+    }
+    .reveal .me {
+      margin-top: 42px;
+    }
+    .reveal ul ul {
+      font-size: 0.8em;
+    }
+    #rasterization {
+      height: 300px;
+    }
+    .code {
+      background: #fff;
+      color: #1c1e20;
+    }
+    .code code {
+      font-size: 25px;
+    }
+
+    section img.img-members {
+      max-height: 600px;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    header.cpu-gpu-header {
+      display: flex;
+      justify-content: center;
+      align-items: baseline;
+    }
+    header.cpu-gpu-header h3 {
+      margin-left: 15px;
+      margin-right: 15px;
+    }
+    ul.cpu-gpu-list {
+      margin-top: 0;
+    }
+    ul.cpu-gpu-list li {
+      font-size: 32px;
+      margin-bottom: 15px;
+      line-height: 1.2;
+    }
+    section img.cpu-gpu {
+      margin-top: 20px;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    section img.steps {
+      margin-top: 80px;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+    ul.steps-list li {
+      font-size: 32px;
+      margin-bottom: 1px;
+      line-height: 1.2;
+    }
+
+    section ul.pipeline-list {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 30px 10%;
+    }
+    section ul.pipeline-list li {
+      width: 50%;
+    }
+    section img.pipeline-img {
+      background-color: #ffffff;
+      border-color: #ffffff;
+      min-height: 500px;
+    }
+
+    section.section-planer-view.present {
+      top: -56% !important;
+      left: -500px;
+      width: auto;
+    }
+    section img.planet-view {
+      border: none;
+      max-height: 660px;
+      min-width: 1000px;
+      margin-bottom: auto;
+    }
+
+    section img.projection {
+      background-color: #ffffff;
+    }
+
+    section.section-gif.present {
+      top: -56% !important;
+      left: -550px;
+      width: auto;
+    }
+    section img.image-gif {
+      border: none;
+      max-height: 700px;
+      min-width: 1100px;
+      margin-bottom: auto;
+    }
+
+    .with-arrow {
+      position: relative;
+    }
+    .with-arrow::before {
+      content: '→';
+      position: absolute;
+      top: -20px;
+      left: 20%;
+      font-size: 60%;
+    }
+    .reveal i sup {
+      font-size: 60%;
+      position: absolute;
+      top: -22px;
+    }
+    .reveal i sub {
+      font-size: 60%;
+    }
+    section div.formula {
+      padding: 20px;
+      width: 600px;
+      border: 4px solid;
+      margin: 30px auto;
+    }
+
+    section .aliasing-container {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+    }
+    section img.aliasing-img {
+      width: 600px;
+      height: 260px;
+    }
+
+    section .fxaa-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 100px;
+    }
+    section .fxaa-wrapper img.fxaa-img {
+      height: auto;
+      width: 49%;
+      border: none;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section style="position: relative;">
+        <h1>WebGL</h1>
+        <h3 style="margin-top: 10rem">Плохотнюк В.С. P3411</h3>
+      </section>
+
+      <section>
+        <h2>Почему я решил рассказать про WebGL?</h2>
+        <ul class="list-margin-bottom">
+          <li>WebGL - это отличный способ развлечь себя решением нестандартных для фронтендера задач в знакомой среде</li>
+          <li>Возможность узнать что-то новое про компьютерную графику</li>
+          <li>В последнее время все больше набирает обороты</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>О чем пойдет речь</h2>
+        <ul class="list-margin-bottom">
+            <li>Что такое WebGL</li>
+            <li>Как WebGL работает</li>
+            <li>Как рисовать 2d на WebGL</li>
+            <li>Пример 3d планеты на WebGL</li>
+          </ul>
+      </section>
+
+      <section>
+        <h2>Что такое WebGL?</h2>
+        <p> — API для разработки 3d-графики в браузере</p>
+      </section>
+
+      <section>
+        <h2>Khronos Group <br> Members (≈134)</h2>
+        <img class="img-members" src="img/members.jpeg" alt="members">
+        <h4 style="text-align: right; width: 100%"></h4>
+      </section>
+
+      <section>
+        <h2>Где используется WebGL?</h2>
+        <img src="img/examples.jpg" alt="examples" style="min-height: 600px;border: none;margin: 0;">
+      </section>
+      <section>
+          <iframe src="https://dogstudio.co/" width="1200" height="700">Dog studio</iframe>
+      </section>
+
+      <section>
+        <h2>Искусство</h2>
+        <img src="img/art-webgl.jpg" alt="art" style="border: none; max-height: 500px;">
+      </section>
+
+      <section>
+        <h2>Презентация машин и интерьеров</h2>
+        <img src="img/3d-example.png" alt="3d example" style="max-height: 500px; border: none;">
+      </section>
+
+      <section>
+        <h2>Игры</h2>
+        <img src="img/game.jpg" alt="3d игры" style="border: none; max-height: 500px;">
+      </section>
+
+      <section>
+        <h2>Примеры</h2>
+        <ul class="list-margin-bottom" style="width: 100%; margin-top: 50px;">
+          <li>
+            <a href="https://sketchfab.com/3d-models/audi-q7-demo-722e900559cf41bdbf9acb8df606b3b8">Sketchlab  (car)</a>
+          </li>
+          <li>
+            <a href="http://madebyevan.com/webgl-water/">WebGL Water</a>
+          </li>
+          <li>
+            <a href="https://dogstudio.co/">Dogstudio</a>
+          </li>
+          <li>
+            <a href="http://www.adultswim.com/etcetera/choir/">Singing Lips</a>
+          </li>
+          <li>
+            <a href="http://www.bongiovi.tw/experiments/webgl/blossom/">Blossom Tree</a>
+          </li>
+          <li>
+            <a href="https://www.shadertoy.com/view/tt2XzG">Shadertoy</a>
+          </li>
+          <li>
+              <a href="https://playcanvas.com/features">Playcanvas Editor (car)</a>
+            </li>
+          <li>
+            <a href="https://wasm.continuation-labs.com/d3demo/">Игра Doom 3</a>
+          </li>
+          <li>
+            <a href="http://oos.moxiecode.com/js_webgl/particles_morph/index.html">Molecular head</a>
+          </li>
+
+        </ul>
+      </section>
+
+      <section>
+        <h2>WebGl программы</h2>
+        <div class="container-flex">
+          <figure style="width: 30%;">
+            <img src="img/js-logo.png" alt="js">
+            <figcaption>JS/TS/whatever программы</figcaption>
+          </figure>
+          <span>+</span>
+          <figure style="width: 50%;">
+            <img src="img/webgl-logo.png" alt="webgl">
+            <figcaption>Шейдеры на GLSL</figcaption>
+          </figure>
+        </div>
+        <style>
+          section .container-flex {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-around;
+            background-color: #ffffff;
+            padding: 30px;
+            margin-top: 40px;
+          }
+
+          .container-flex figcaption {
+            color: #000000;
+          }
+
+          .container-flex span {
+            align-self: center;
+            flex-grow: 1;
+            color: #000000;
+            font-size: 60px;
+          }
+
+          section .container-flex img {
+            box-shadow: none;
+            border: none;
+          }
+        </style>
+      </section>
+
+      <section class="client-server-container">
+        <h2>Клиент-серверная модель</h2>
+        <ul>
+          <li>
+            JS приложение - это клиент
+          </li>
+          <li>
+            Видеокарта - это сервер
+          </li>
+          <li>
+            WebGL - интерфейс
+          </li>
+        </ul>
+        <style>
+          section.client-server-container ul {
+            margin-top: 50px;
+          }
+          section.client-server-container li {
+            margin-bottom: 20px;
+          }
+        </style>
+      </section>
+
+      <section>
+        <header class="cpu-gpu-header"><h2>CPU</h2><h3>vs</h3><h2>GPU</h2></header>
+        <ul class="cpu-gpu-list">
+          <li>
+            Процессор Core i7, 2,7ГГц - 4 ядра, видеокарта Radeon 555 - 748 ядер*
+          </li>
+          <li>
+            Видеокарта заточена на параллельное выполнение несвязанных между собой задач
+          </li>
+        </ul>
+        <img src="img/cpu-gpu.gif" class="cpu-gpu" alt="cpu-gpu">
+      </section>
+
+      <section>
+        <h2>Как видеокарта рисует с помощью WebGL?</h2>
+      </section>
+
+      <section>
+        <h2>Работа на видеокарте</h2>
+        <ul style="margin-top: 10px;">
+          <li style="margin-bottom: 15px;">
+            Преобразование позиций треугольников
+          </li>
+          <li style="margin-bottom: 15px;">
+            Проекция результирующей модели на экран
+          </li>
+          <li style="margin-bottom: 15px;">
+            В растеризаторе спроецированные треугольники разбиваются на фрагменты
+          </li>
+          <li style="margin-bottom: 15px;">
+            Определение цвета для каждого фрагмента во фрагментном шейдере
+          </li>
+        </ul>
+        <img src="img/process1.png" alt="pipelene">
+      </section>
+
+      <section>
+        <h2>Графический pipeline WebGL</h2>
+        <img src="img/graphic-pipeline.png" class="pipeline-img all" alt="pipeline" style="margin-top: 40px;">
+      </section>
+
+      <section>
+        <h2>Input Assembler</h2>
+        <h3>(фиксированный этап)</h3>
+        <ul>
+          <li>
+            С помощью функции gl.bufferData(...) - мы переносим данные из javascript’a на видеркарту
+          </li>
+          <li style="margin-top: 10px;">Вершинный буффер:
+            <ul>
+              <li>Позиция</li>
+              <li>Нормаль</li>
+              <li>Текстурные координаты</li>
+            </ul>
+          </li>
+        </ul>
+        <pre style="margin-top: 0;">
+          <code class="javascript" style="line-height: 1; padding: 0;">
+        const vertices = new Float32Array([
+          // vertex 1
+         -0.5, -0.5, 0.0,  // position
+          1.0, 0.0, 0.0,   // normal
+          0.5, 0.5,        // texCoord
+          ...
+          // vertex n
+          1.0, 0.5, 0.0,  // position
+          0.0, 1.0, 0.0,  // normal
+          1.0, 0.5,       // texCoord
+       ]);
+          </code>
+        </pre>
+      </section>
+
+      <section>
+        <h2>Vertex shader</h2>
+        <h3>(програмируемый этап)</h3>
+        <img src="img/pipeline-step2.png" alt="Vertex shader" class="pipeline-img">
+      </section>
+
+      <section>
+        <h2>Vertex shader</h2>
+        <div style="display: flex;">
+          <ul>
+            <li>
+              Получаем данные, которые описывают вершину через атрибуты:
+              <ul><li>позиция, нормаль, текстурные координаты</li></ul>
+            </li>
+          </ul>
+        </div>
+        <pre>
+          <code class="c">
+      // attribute means it comes from the geometry array we created
+      attribute vec3 a_position;
+      attribute vec3 a_normal;
+      // uniforms - constants
+      uniform mat4 u_worldTransform;
+      uniform mat4 u_viewProjection;
+      // output to fragment shader
+      varying vec3 v_normal;
+
+      void main() {
+        vec4 worldPos = u_worldTransform * vec4(a_position, 1.0);
+        vec4 viewPos = u_viewProjection * worldPos;
+
+        v_normal = mat3(u_worldTransform) * a_normal;
+        gl_Position = viewPos;
+      }
+          </code>
+        </pre>
+      </section>
+
+      <section>
+        <h2>Преобразования над данными</h2>
+        <ul style="margin-top: 10px;">
+          <li style="margin-bottom: 20px;">
+            Матрица трансформации вершин из пространства модели в мировое пространство
+          </li>
+          <li style="margin-bottom: 10px;">
+            Матрица трансформации из мирового пространства в пространство камеры
+          </li>
+        </ul>
+        <img src="img/all-steps.png" alt="all-steps" style="background: #ffffff;">
+      </section>
+
+      <section>
+        <h3>Матрица трансформации из пространства камеры в пространство отсечения</h3>
+        <img src="img/clip-space.png" alt="clip-space" style="border: #ffffff;" width="700">
+      </section>
+
+      <section>
+        <h2>Проекция</h2>
+        <ul>
+          <li>
+            Ортогональная - линии проецирования переносятся перпендикулярно плоскости проекции
+          </li>
+          <li>
+            Перспективная - луч проекции идет от проецируемой точки в позицию камеры
+          </li>
+        </ul>
+        <img class="projection" src="img/projection.png" alt="projection">
+      </section>
+
+      <section>
+        <h2 style="text-transform: none;">gl_Position</h2>
+        <ul>
+           <li>
+              На выходе вершинный шейдер возвращает позицию вершины в gl_Position
+           </li>
+          <li>
+            gl_Position — значение координат пространства отсечения
+          </li>
+        </ul>
+        <img src="img/ndc.png" width="370" style="max-height: 500px" alt="ndc">
+      </section>
+
+      <section>
+        <h2>Primitive Assembly</h2>
+        <img src="img/pipeline-step3.png" alt="Primitive Assembly" class="pipeline-img">
+      </section>
+
+      <section>
+        <h2>Primitive Assembly</h2>
+        <h3>(фиксированный этап)</h3>
+          <ul style="margin-top: 20px;">
+            <li style="margin-bottom: 10px;">Cобирает из вершин примитивы</li>
+            <li>WebGL - поддерживает три типа примитивов:
+              <ul>
+                <li>точки, линии, треугольники</li>
+              </ul>
+            </li>
+          </ul>
+          <img src="img/primitive-assembly.png" width="550" alt="primitive-assembly" style="border: none;">
+      </section>
+
+      <section>
+        <h2>Rasterizer</h2>
+        <img src="img/pipeline-step4.png" alt="Rasterizer" class="pipeline-img">
+      </section>
+
+      <section>
+        <h2>Rasterizer</h2>
+        <h3>(фиксированный этап)</h3>
+        <ul>
+          <li>
+            Видеокарта определяет, какие пиксели в итоговом Frame buffer перекрываются рисуемым примитивом
+          </li>
+          <li>
+            Интерполяция данных вершин внутри треугольника
+          </li>
+        </ul>
+        <img src="img/rasterization.png" alt="rasterization">
+      </section>
+
+      <section>
+        <h2>Fragment Shader</h2>
+        <img src="img/pipeline-step5.png" alt="Fragment Shader" class="pipeline-img">
+      </section>
+
+      <section>
+        <h2>Fragment Shader</h2>
+        <h3>(програмируемый этап)</h3>
+        <ul>
+          <li>
+            Для каждого фрагмента, полученного из Rasterizer мы выполняем один Fragment shader
+          </li>
+          <li>
+            На выходе Fragment shader дает цвет итогового фрагмента - gl_FragColor
+          </li>
+        </ul>
+        <pre>
+          <code class="c">
+      // uniforms
+      uniform vec3 u_lightDir;
+      uniform vec3 u_lightColor;
+      //input from vertex shader
+      varying vec3 v_normal;
+
+      void main() {
+        float NoL = max(dot(v_normal, -u_lightDir), 0.0);
+        gl_FragColor = vec4(NoL * u_lightColor, 1.0);
+      }
+          </code>
+        </pre>
+      </section>
+
+      <section>
+        <h2>Test and Blending + Output Buffer</h2>
+        <img src="img/test-blending.png" alt="Test and Blending" class="pipeline-img">
+      </section>
+
+      <section>
+        <h2>А что если упростить?</h2>
+        <img src="img/verticies.jpg" alt="pipelene">
+        <style>
+        section ul.pipeline-list-2 {
+          width: 919px;
+          display: flex;
+          justify-content: center;
+          flex-wrap: wrap;
+          margin-right: 0;
+          margin-left: 110px;
+        }
+
+        section ul.pipeline-list-2 li {
+          width: 35%;
+        }
+        </style>
+      </section>
+
+      <section class="section-gif">
+        <h2>
+            WebGL 2d
+        </h2>
+        <img src="videos/2d.gif" class="image-gif" alt="2d-gif">
+      </section>
+
+      <section>
+        <h2>Can i use</h2>
+        <img src="img/can-i-use.png" alt="can-i-use" style="border: none; min-width: 1000px;">
+      </section>
+
+      <section>
+        <h2>
+            WebGL Context
+        </h2>
+        <img src="img/canvas.png" alt="canvas" style="border: none;width: 100%; margin-top: 40px;">
+      </section>
+
+      <section>
+        <h2>Quad</h2>
+        <img src="img/quad.png" alt="quad" style="border: none; min-height: 500px;">
+      </section>
+
+      <section>
+        <h2>
+          Shader Program
+        </h2>
+        <pre>
+          <code class="javascript" style="line-height: 1.2;">
+      // компилируем вершинный шейдер
+      const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+      gl.shaderSource(vertexShader, vertexShaderCode);
+      gl.compileShader(vertexShader);
+
+      // компилируем фрагментный шейдер
+      const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+      gl.shaderSource(fragmentShader, fragmentShaderCode);
+      gl.compileShader(fragmentShader);
+
+      // линкуем их вместе
+      const program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+          </code>
+        </pre>
+      </section>
+
+      <section class="section-gif">
+        <h2>
+            WebGL 2d
+        </h2>
+        <img src="videos/2d.gif" class="image-gif" alt="2d-gif">
+      </section>
+
+      <section class="section-planer-view">
+        <h2>WebGL 3D</h2>
+        <img src="videos/planet0.gif" class="image-gif" alt="planet-gif">
+      </section>
+
+      <section>
+        <h2>3 способа создания сферы</h2>
+        <img src="img/spheres.png" alt="spheres" style="max-height: 500px;">
+      </section>
+
+      <section>
+        <h2>UV sphere</h2>
+        <img src="img/uv-sphere.png" alt="uv-sphere" style="max-height: 500px;" class="sphere">
+        <style>
+          section img.sphere {
+            width: 900px;
+            border: none;
+          }
+        </style>
+      </section>
+
+      <section>
+        <h2>ICO sphere</h2>
+        <img src="img/ico-sphere.gif" alt="ico-sphere" style="max-height: 500px" class="sphere">
+      </section>
+
+      <section>
+        <h2>Normalized Cube</h2>
+        <img src="img/cubemap.png" alt="normalized cube" style="max-height: 500px;" class="sphere">
+        <style>
+          section img.uv-sphere {
+            width: 900px;
+            border: none;
+          }
+        </style>
+      </section>
+
+      <section>
+        <h2>Перобразование куба в сферу</h2>
+        <img src="img/cubemap-vertex.jpg" alt="normalized cube" style="border: none; max-height: 500px;">
+      </section>
+
+      <section>
+        <h2>Генерация карты высот</h2>
+        <img src="img/noise-3d.png" alt="noise" style="max-height: 700px;width: 800px;">
+      </section>
+
+      <section>
+        <h2>Функция шума</h2>
+        <ul>
+          <li>0.0 - черный, 1.0 - белый</li>
+        </ul>
+        <img src="img/function-noise.png" alt="function-noise" style="border: none;">
+        <pre>
+          <code class="javascript">
+      // функция noise возвращает случайное число
+      float noise (in vec2 st) {
+        return fract(sin(dot(st.xy,
+          vec2(12.9898,78.233))) * 43758.5453123);
+      }
+          </code>
+        </pre>
+      </section>
+
+      <section>
+        <h2>Приведение шума в соответствие с картой высот</h2>
+        <img src="videos/noise.gif" style="border: none;"/>
+        <pre>
+          <code class="javascript">
+    elevation[y][x] = noise(nx, ny);
+          </code>
+        </pre>
+        <script>
+          document.getElementById('noise-video').play();
+        </script>
+      </section>
+
+      <section>
+        <h2>3 Октавы шума</h2>
+        <img src="img/noise.jpg" alt="noise">
+        <pre>
+          <code>
+      elevation[y][x] =  1 * noise(1 * nx, 1 * ny);
+      +  0.5 * noise(2 * nx, 2 * ny);
+      + 0.25 * noise(4 * nx, 2 * ny);
+          </code>
+        </pre>
+      </section>
+
+      <section>
+        <h2>Изображение процедурного мира</h2>
+        <img src="img/biome.png" alt="biome" style="min-width: 900px; border: none;">
+      </section>
+
+      <section class="section-gif">
+        <h2>
+          Планета и облака
+        </h2>
+        <img src="videos/planet0.gif" class="image-gif" alt="planet-gif">
+      </section>
+
+      <section>
+        <h2>AlphaBlend для облаков</h2>
+
+        <pre style="margin-top: 0; max-height: 220px;">
+            <code class="javascript"  style="line-height: 1.5;">
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+        blendResult = frameBuffer.rgb * (1 - shaderOutput.a) + // планета
+                      shaderOutput.rgb * shaderOutput.a; // облака
+            </code>
+        </pre>
+        <img src="videos/moon.gif" alt="cloud" style="border: none; margin-bottom: 0;">
+      </section>
+
+      <section>
+        <h2>Чтобы сделать 3d модель объёмной, ее необходимо осветить</h2>
+        <img src="img/sphere-earth-light.jpg" alt="light of earth" style="border: none; max-height: 500px;"/>
+      </section>
+
+      <section>
+        <h2>Освещение по Фонгу</h2>
+        <img src="img/phong-sum.png" alt="Phong">
+        <ul style="font-size: 28px;">
+          <li style="margin-bottom: 20px;">
+            Фоновое освещение (ambient) — имитация света, достигшего заданной точки после отражения от других объектов.
+          </li>
+          <li style="margin-bottom: 20px;">
+            Рассеянное освещение (diffuse) — свет от источника, рассеянный после попадания в заданную точку. В зависимости от угла, под которым падает свет, освещение становится сильнее или слабее.
+          </li>
+          <li>
+            Отраженное освещение (specular) — свет от источника, отраженный после попадания в заданную точку. Отраженный свет виден, если он попадает в камеру.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Освещение</h2>
+        <img src="img/light.png" alt="Light">
+        <div class="formula">
+          <i style="position: relative">
+            I<sub>p</sub> = k<sub>α</sub> i<sub>α</sub>
+            +  k<sub>d</sub> (<span class="with-arrow" style="color: #8E37D3">L</span> . <span class="with-arrow" style="color: #FF0000;">N</span>) i<sub>d</sub>
+            + k<sub>s</sub> (<span class="with-arrow" style="color: #2765DD;">R</span> . <span class="with-arrow" style="color: #24B24C;">V</span>)<sup>α</sup>&nbsp;&nbsp;i<sub>s</sub>
+          </i>
+        </div>
+      </section>
+
+      <section>
+        <h2>Aliasing</h2>
+        <div class="aliasing-container">
+          <img class="aliasing-img" src="img/aliasing2.png" alt="fxaa-before">
+          <img class="aliasing-img" src="img/aliasing1.png" alt="fxaa-after">
+        </div>
+      </section>
+
+      <section>
+        <h2>Зубчатый паттерн после растеризации</h2>
+        <img src="img/rasterization.png" alt="rasterization">
+      </section>
+
+      <section>
+        <h2>Методы сглаживания</h2>
+          <ul>
+            <li style="margin-bottom: 10px">SSAA - рисует картинку бОльшего разрешения и выводит с исходными размерами</li>
+            <li style="margin-bottom: 10px">MSAA - улучшенная SSAA (сглаживает только границы)</li>
+            <li style="margin-bottom: 10px">CSAA и CFAA - улучшенная версия от Nvidia и AMD (решили унифицировать и отказались)</li>
+            <li style="margin-bottom: 10px">FXAA - за один проход усредняет цвета соседних пикселей</li>
+            <li style="margin-bottom: 10px">MLAA - ±работает как FXAA, но на процессоре (от Intel) </li>
+            <li style="margin-bottom: 10px">SMAA -MLAA на видеокарте и TXAA - для движущихся объектов</li>
+          </ul>
+      </section>
+
+      <section>
+        <h2>FXAA</h2>
+        <h3>- fast approximate anti-aliasing</h3>
+        <div class="fxaa-wrapper">
+          <img class="fxaa-img" src="img/fxaa2.png" alt="fxaa-before">
+          <img class="fxaa-img" src="img/fxaa1.png" alt="fxaa-after">
+        </div>
+      </section>
+
+      <section>
+        <h2>WebGL libraries</h2>
+        <ul>
+          <li>
+            <a href="https://github.com/mrdoob/three.js#readme">Three.js</a>
+          </li>
+          <li>
+            <a href="http://senchalabs.github.com/philogl/">PhiloGL</a>
+          </li>
+          <li>
+            <a href="http://www.glge.org/">GLGE</a>
+          </li>
+          <li>
+            <a href="https://github.com/drojdjou/J3D#readme">J3D</a>
+          </li>
+          <li>
+            <a href="https://www.babylonjs.com/">Babylon.js</a>
+          </li>
+          <li>
+            <a href="https://twgljs.org/">TWGL.js</a>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Литература</h2>
+        <ul>
+          <li>
+            <a href="https://webglfundamentals.org/">
+              WebGL Fundamentals
+            </a>
+          </li>
+          <li>
+            <a href="https://www.tutorialspoint.com/webgl/webgl_graphics_pipeline.htm">
+              WebGL - Graphics Pipeline
+            </a>
+          </li>
+          <li>
+            <a href="https://tproger.ru/articles/cpu-and-gpu/">
+              В чем разница между CPU и GPU?
+            </a>
+          </li>
+          <li>
+            <a href="https://medium.com/game-dev-daily/four-ways-to-create-a-mesh-for-a-sphere-d7956b825db4">
+              Four Ways to Create a Mesh for a Sphere
+            </a>
+          </li>
+          <li>
+            <a href="https://www.redblobgames.com/maps/terrain-from-noise/">
+              Making maps with noise functions
+            </a>
+          </li>
+          <li>
+            <a href="http://blog.simonrodriguez.fr/articles/30-07-2016_implementing_fxaa.html">
+              Implementing FXAA
+            </a>
+          </li>
+          <li>
+            <a href="https://habr.com/en/post/446682/">
+              Ускоряем WebGL/Three.js с помощью OffscreenCanvas и веб-воркеров
+            </a>
+          </li>
+          <li>
+            <a href="https://www.youtube.com/watch?v=WPsf2NWPu_Y&t=7766s">SIGGRAPH 2019 от KRONOS GROUP</a>
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Спасибо</h2>
+        <style>
+        section .thanks {
+          display: flex;
+        }
+
+        section .thanks .qr {
+          flex-grow: 1
+        }
+
+        section .thanks .links {
+          margin-top: 30px;
+          display: flex;
+          flex-direction: column;
+          width: 50%;
+        }
+
+        section .links a {
+          display: flex;
+          align-items: center;
+        }
+
+        section .links img {
+          margin-right: 15px;
+          border: none;
+          box-shadow: none;
+          background: none;
+        }
+
+        section .links img {
+          width: 41px;
+          height: 40px;
+          border-radius: 50%;
+        }
+
+        section .links img[alt="github"] {
+          background-color: #ffffff;
+        }
+        </style>
+      </section>
+
+    </div>
+  </div>
+  <script src="lib/js/head.min.js"></script>
+  <script src="js/reveal.min.js"></script>
+  <script src="js/highlight.min.js"></script>
+  <script>
+    Reveal.initialize({
+      history: true,
+      slideNumber: true,
+      controls: false
+    });
+
+    Reveal.addEventListener("slidechanged", function(event) {
+      window.onresize();
+    });
+
+    hljs.initHighlightingOnLoad();
+
+  </script>
+</body>
+</html>
